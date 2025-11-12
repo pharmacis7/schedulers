@@ -3,16 +3,11 @@ import numpy as np
 import csv
 import os
 
-# -----------------------------------------------------------
-# General Metrics Visualization
-# -----------------------------------------------------------
-
 def plot_results(results, title, filename):
-    # Enforce display order in bar plots
     scheduler_order = [
         "FCFS", "Round Robin",
-        "GA", "BasePaper(GA)",
-        "PSO", "BasePaper(PSO)",
+        "GA", "PSO",
+        "HPSO-SA", "HGA-SA",
         "test1", "test2"
     ]
     
@@ -29,8 +24,8 @@ def plot_results(results, title, filename):
         x_pos = np.arange(len(schedulers))
 
         bars = ax.bar(x_pos, values, align='center',
-                      color=['#1f77b4', '#ff7f0e', '#2ca02c', '#9467bd',
-                             '#17becf', '#e377c2', '#8c564b', '#7f7f7f'])
+                      color=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728',
+                             '#9467bd', '#8c564b', '#e377c2', '#7f7f7f'])
         ax.set_xticks(x_pos)
         ax.set_xticklabels(schedulers, rotation=45, ha='right')
         ax.set_ylabel(name)
@@ -81,11 +76,7 @@ def plot_average_results(all_results, filename):
     csv_filename = filename.replace(".png", ".csv")
     save_results_to_csv(average_metrics, csv_filename)
 
-# -----------------------------------------------------------
-# Convergence Plots for Paper-style Hybrids
-# -----------------------------------------------------------
-
-def plot_paper_convergence(history, title="BasePaper(PSO) Convergence", filename="results/paper_pso_convergence.png"):
+def plot_paper_convergence(history, title="HPSO-SA Convergence", filename="results/HPSO_SA_convergence.png"):
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     iters = history.get('iteration', [])
     gbest = history.get('gbest', [])
@@ -111,7 +102,7 @@ def plot_paper_convergence(history, title="BasePaper(PSO) Convergence", filename
     plt.close(fig)
 
 
-def plot_ga_convergence(history, title="BasePaper(GA) Convergence", filename="results/paper_ga_convergence.png"):
+def plot_ga_convergence(history, title="HGA-SA Convergence", filename="results/HGA_SA_convergence.png"):
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     gens = history.get('generation', [])
     gbest = history.get('gbest', [])

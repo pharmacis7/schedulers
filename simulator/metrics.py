@@ -1,27 +1,14 @@
 import numpy as np
 
 def calculate_metrics(schedule, tasks, vms):
-    """
-    Calculates the performance metrics for a given schedule *on a DAG*.
-    
-    This simulation now includes:
-    1. DAG task dependencies.
-    2. Data transfer times between VMs (based on bandwidth).
-    
-    It assumes the 'schedule' is VALID in terms of RAM.
-    The fitness function is responsible for checking RAM validity.
-    """
     
     num_tasks = len(tasks)
     num_vms = len(vms)
 
-    # vm_finish_times[j] = the time when VM 'j' will be free (CPU free).
     vm_finish_times = np.zeros(num_vms)
     
-    # vm_total_busy_time[j] = total time VM 'j' was busy (for cost/energy).
     vm_total_busy_time = np.zeros(num_vms)
     
-    # task_finish_times[i] = the time when task 'i' *actually* finishes.
     task_finish_times = {} 
 
     uncompleted_parents_count = {
@@ -40,19 +27,11 @@ def calculate_metrics(schedule, tasks, vms):
         task_id = ready_queue.pop(0)
         task = tasks[task_id]
         
-        # 1. Get assigned VM
         vm_id = schedule[task_id]
         vm = vms[vm_id]
 
-        # 2. Determine task start time
-        # Task can only start when:
-        # a) Its assigned VM's CPU is free
-        # b) All its parents have finished AND
-        # c) All required data from parents has been transferred
-        
         vm_available_time = vm_finish_times[vm_id]
         
-        # --- NEW: Calculate Data Transfer Time ---
         parent_data_ready_time = 0
         if task.parents:
             for p_id in task.parents:
@@ -61,42 +40,31 @@ def calculate_metrics(schedule, tasks, vms):
                 
                 transfer_time = 0
                 if p_vm_id != vm_id:
-                    # Tasks are on different VMs, calculate transfer time
                     data_size_mb = task.parent_data_sizes[p_id]
-                    # Convert VM bandwidth from Mbps (Megabits) to MBps (Megabytes)
-                    # 1 Byte = 8 bits
                     bandwidth_mbps = vm.bandwidth / 8.0 
                     if bandwidth_mbps > 0:
                         transfer_time = data_size_mb / bandwidth_mbps
                     else:
-                        transfer_time = float('inf') # Avoid division by zero
+                        transfer_time = float('inf')
                 
-                # The data from this parent is ready at its finish time + transfer time
                 this_parent_ready_time = p_finish_time + transfer_time
                 
-                # The task must wait for the *last* parent's data to arrive
                 if this_parent_ready_time > parent_data_ready_time:
                     parent_data_ready_time = this_parent_ready_time
-        # --- End of New Section ---
             
         start_time = max(vm_available_time, parent_data_ready_time)
         
-        # 3. Calculate execution and finish time
         execution_time = task.length / vm.mips
         finish_time = start_time + execution_time
         
-        # 4. Update state
         task_finish_times[task_id] = finish_time
         vm_finish_times[vm_id] = finish_time
         vm_total_busy_time[vm_id] += execution_time
         
-        # 5. Add newly ready children to the queue
         for child_id in task.children:
             uncompleted_parents_count[child_id] -= 1
             if uncompleted_parents_count[child_id] == 0:
                 ready_queue.append(child_id)
-
-    # --- All tasks are finished, calculate final metrics ---
 
     makespan = max(task_finish_times.values())
     

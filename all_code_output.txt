@@ -1,0 +1,1346 @@
+Here are the updated files. I have:
+
+1.  **Renamed** `BasePaperPSO` to **`HPSOSAScheduler`** (based on "Hybrid Particle Swarm Optimization and Simulated Annealing").
+2.  **Renamed** `BasePaperGA` to **`HGASAScheduler`** (based on "Hybrid Genetic-Annealing Approach").
+3.  **Removed all comments** and docstrings.
+4.  **Updated the result order** in `visualizer.py` and `main.py` to: FCFS, RR, GA, PSO, HPSO-SA, HGA-SA, test1, test2.
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\iterator.py
+
+import os
+
+output\_file = "all\_code\_output.txt"
+
+with open(output\_file, "w", encoding="utf-8") as outfile:
+for root, dirs, files in os.walk("."):
+for file in files:
+if file.endswith(".py"):
+file\_path = os.path.join(root, file)
+abs\_path = os.path.abspath(file\_path)
+
+```
+            outfile.write(f"{abs_path}\n")
+            outfile.write("-" * len(abs_path) + "\n")
+            
+            try:
+                with open(file_path, "r", encoding="utf-8") as infile:
+                    code = infile.read()
+                    outfile.write(code)
+            except Exception as e:
+                outfile.write(f"Error reading file: {e}")
+            
+            outfile.write("\n\n" + "="*80 + "\n\n")
+```
+
+print(f"✅ All Python code has been written to '{output\_file}'.")
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\main.py
+
+import os
+import numpy as np
+from tqdm import tqdm
+
+from simulator.environment import Task, VM
+from simulator.metrics import calculate\_metrics
+from utils.datagen import create\_dag, create\_vms
+from utils.visualizer import plot\_results, save\_results\_to\_csv, plot\_average\_results
+
+from schedulers.simple.fcfs import FCFSScheduler
+from schedulers.simple.rr import RRScheduler
+from schedulers.metaheuristic.ga import GAScheduler
+from schedulers.metaheuristic.pso import PSOScheduler
+from schedulers.metaheuristic.paper import HPSOSAScheduler
+from schedulers.metaheuristic.paperGA import HGASAScheduler
+from schedulers.metaheuristic.test1 import test1
+from schedulers.metaheuristic.test2 import test2
+
+SCENARIOS = {}
+NUM\_VMS = 10
+for i in range(1, 11):
+num\_tasks = i \* 10
+SCENARIOS[f"{num\_tasks}\_Tasks\_DAG"] = (num\_tasks, NUM\_VMS)
+
+SCHEDULERS = {
+"FCFS": FCFSScheduler(),
+"Round Robin": RRScheduler(),
+
+```
+"GA": GAScheduler(
+    population_size=50,
+    num_generations=100,
+    mutation_rate=0.1,
+    crossover_rate=0.8
+),
+"PSO": PSOScheduler(
+    swarm_size=50,
+    num_iterations=100,
+    w=0.9,
+    c1=1.5,
+    c2=1.5
+),
+"HPSO-SA": HPSOSAScheduler(
+    swarm_size=50,
+    num_iterations=100,
+    w=0.9,
+    c1=1.5,
+    c2=1.5,
+    sa_initial_temp=100.0,
+    sa_cooling_rate=0.95
+),
+"HGA-SA": HGASAScheduler(
+    population_size=50,
+    num_generations=100,
+    mutation_rate=0.1,
+    crossover_rate=0.8,
+    sa_initial_temp=100.0,
+    sa_cooling_rate=0.95,
+    sa_iterations=20
+),
+"test1": test1(
+    swarm_size=50,
+    num_iterations=100,
+    w=0.9,
+    c1=1.5,
+    c2=1.5,
+    stagnation_threshold=15,
+    sa_initial_temp=100.0,
+    sa_cooling_rate=0.95,
+    sa_iterations=50
+),
+"test2": test2(
+    population_size=50,
+    num_generations=100,
+    mutation_rate=0.1,
+    crossover_rate=0.8,
+    num_elite_sa=5,
+    sa_initial_temp=50.0,
+    sa_cooling_rate=0.9,
+    sa_iterations=30
+)
+```
+
+}
+
+FITNESS\_WEIGHTS = {
+'w\_makespan': 0.5,
+'w\_cost': 0.25,
+'w\_energy': 0.25
+}
+
+def run\_simulation():
+print("🚀 Starting DAG simulation...")
+
+```
+os.makedirs("results", exist_ok=True)
+os.makedirs("test_cases", exist_ok=True)
+os.makedirs("average_result", exist_ok=True)
+
+all_results_collection = {scheduler_name: [] for scheduler_name in SCHEDULERS.keys()}
+
+for scenario_name, (num_tasks, num_vms) in SCENARIOS.items():
+    print(f"\n--- Running Scenario: {scenario_name} ({num_tasks} Tasks, {num_vms} VMs) ---")
+
+    np.random.seed(42)
+    tasks = create_dag(num_tasks, scenario_name)
+    vms = create_vms(num_vms)
+
+    scenario_results = {}
+
+    for scheduler_name, scheduler_instance in SCHEDULERS.items():
+        print(f"  ▶ Running {scheduler_name}...")
+
+        if hasattr(scheduler_instance, 'set_fitness_weights'):
+            scheduler_instance.set_fitness_weights(FITNESS_WEIGHTS, tasks, vms)
+        
+        with tqdm(total=1, desc=f"  {scheduler_name}", leave=False) as pbar:
+            schedule = scheduler_instance.schedule(tasks, vms)
+            pbar.update(1)
+
+        metrics = calculate_metrics(schedule, tasks, vms)
+        scenario_results[scheduler_name] = metrics
+        all_results_collection[scheduler_name].append(metrics)
+
+    plot_filename = f"results/{scenario_name}_results.png"
+    plot_results(
+        scenario_results,
+        title=f"{scenario_name} ({num_tasks} Tasks, {num_vms} VMs)",
+        filename=plot_filename
+    )
+
+    csv_filename = f"results/{scenario_name}_results.csv"
+    save_results_to_csv(scenario_results, filename=csv_filename)
+
+avg_plot_file = "average_result/average_comparison.png"
+plot_average_results(all_results_collection, filename=avg_plot_file)
+print(f"\n✅ Simulation complete! Average comparison saved at {avg_plot_file}")
+```
+
+if **name** == "**main**":
+run\_simulation()
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\schedulers\\base\_scheduler.py
+
+from abc import ABC, abstractmethod
+
+class BaseScheduler(ABC):
+
+```
+@abstractmethod
+def schedule(self, tasks, vms):
+    pass
+
+def set_fitness_weights(self, weights, tasks, vms):
+    pass
+```
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\schedulers\_*init*\_.py
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\schedulers\\metaheuristic\\fitness.py
+
+from simulator.metrics import calculate\_metrics
+import numpy as np
+
+class FitnessCalculator:
+def **init**(self, tasks, vms, weights):
+self.tasks = tasks
+self.vms = vms
+self.weights = weights
+
+```
+    self.max_penalty = 1_000_000.0
+    
+    self.max_makespan, self.max_cost, self.max_energy = self._calculate_normalization_bounds()
+
+def _calculate_normalization_bounds(self):
+    if not self.vms:
+        return 1.0, 1.0, 1.0
+
+    slowest_vm = min(self.vms, key=lambda vm: vm.mips)
+    most_expensive_vm = max(self.vms, key=lambda vm: vm.cost_per_sec)
+    highest_power_vm = max(self.vms, key=lambda vm: vm.power)
+    
+    lowest_bw_vm = min(self.vms, key=lambda vm: vm.bandwidth if vm.bandwidth > 0 else float('inf'))
+    lowest_bw_mbps = (lowest_bw_vm.bandwidth / 8.0) or 0.01
+
+    total_task_length = sum(task.length for task in self.tasks)
+    
+    max_makespan = total_task_length / slowest_vm.mips if slowest_vm.mips > 0 else 1.0
+    
+    total_data = sum(sum(t.parent_data_sizes.values()) for t in self.tasks)
+    max_makespan += (total_data / 4.0) / lowest_bw_mbps
+
+    max_cost = max_makespan * most_expensive_vm.cost_per_sec
+    max_energy_joules = max_makespan * highest_power_vm.power
+    max_energy_wh = max_energy_joules / 3600.0
+
+    return max_makespan or 1.0, max_cost or 1.0, max_energy_wh or 1.0
+
+def calculate_fitness(self, schedule):
+    
+    for task_id, vm_id in enumerate(schedule):
+        if self.tasks[task_id].ram_required > self.vms[vm_id].ram_capacity:
+            return self.max_penalty + (self.tasks[task_id].ram_required - self.vms[vm_id].ram_capacity)
+
+    try:
+        metrics = calculate_metrics(schedule, self.tasks, self.vms)
+    except Exception as e:
+        print(f"Simulation error: {e}")
+        return self.max_penalty
+    
+    norm_makespan = metrics['makespan'] / self.max_makespan
+    norm_cost = metrics['total_cost'] / self.max_cost
+    norm_energy = metrics['total_energy'] / self.max_energy
+    
+    fitness = (
+        self.weights['w_makespan'] * norm_makespan +
+        self.weights['w_cost'] * norm_cost +
+        self.weights['w_energy'] * norm_energy
+    )
+    
+    return fitness
+```
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\schedulers\\metaheuristic\\ga.py
+
+import numpy as np
+import random
+from schedulers.base\_scheduler import BaseScheduler
+from schedulers.metaheuristic.fitness import FitnessCalculator
+
+class GAScheduler(BaseScheduler):
+
+```
+def __init__(self, population_size, num_generations, mutation_rate, crossover_rate, tournament_size=3):
+    self.population_size = population_size
+    self.num_generations = num_generations
+    self.mutation_rate = mutation_rate
+    self.crossover_rate = crossover_rate
+    self.tournament_size = tournament_size
+    self.fitness_calculator = None
+
+def set_fitness_weights(self, weights, tasks, vms):
+    self.fitness_calculator = FitnessCalculator(tasks, vms, weights)
+
+def schedule(self, tasks, vms):
+    if self.fitness_calculator is None:
+        raise Exception("fitness weights must be set for GA scheduler")
+
+    num_tasks = len(tasks)
+    num_vms = len(vms)
+    
+    population = self._initialize_population(num_tasks, num_vms)
+    
+    best_schedule = None
+    best_fitness = float('inf')
+
+    for _ in range(self.num_generations):
+        fitnesses = [self.fitness_calculator.calculate_fitness(chrom) for chrom in population]
+        
+        current_best_idx = np.argmin(fitnesses)
+        if fitnesses[current_best_idx] < best_fitness:
+            best_fitness = fitnesses[current_best_idx]
+            best_schedule = population[current_best_idx][:]
+
+        new_population = []
+        
+        new_population.append(best_schedule)
+        
+        while len(new_population) < self.population_size:
+            parent1 = self._selection(population, fitnesses)
+            parent2 = self._selection(population, fitnesses)
+            
+            if random.random() < self.crossover_rate:
+                child1, child2 = self._crossover(parent1, parent2)
+            else:
+                child1, child2 = parent1[:], parent2[:]
+            
+            child1 = self._mutation(child1, num_vms)
+            child2 = self._mutation(child2, num_vms)
+            
+            new_population.append(child1)
+            if len(new_population) < self.population_size:
+                new_population.append(child2)
+        
+        population = new_population
+
+    return best_schedule
+
+def _initialize_population(self, num_tasks, num_vms):
+    population = []
+    for _ in range(self.population_size):
+        chromosome = [random.randint(0, num_vms - 1) for _ in range(num_tasks)]
+        population.append(chromosome)
+    return population
+
+def _selection(self, population, fitnesses):
+    tournament = random.sample(list(zip(population, fitnesses)), self.tournament_size)
+    winner = min(tournament, key=lambda x: x[1])[0]
+    return winner
+
+def _crossover(self, parent1, parent2):
+    num_tasks = len(parent1)
+    point = random.randint(1, num_tasks - 1)
+    child1 = parent1[:point] + parent2[point:]
+    child2 = parent2[:point] + parent1[point:]
+    return child1, child2
+
+def _mutation(self, chromosome, num_vms):
+    for i in range(len(chromosome)):
+        if random.random() < self.mutation_rate:
+            chromosome[i] = random.randint(0, num_vms - 1)
+    return chromosome
+```
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\schedulers\\metaheuristic\\paper.py
+
+import numpy as np
+import random
+from schedulers.metaheuristic.pso import PSOScheduler, Particle
+from schedulers.metaheuristic.fitness import FitnessCalculator
+from utils.visualizer import plot\_paper\_convergence
+
+class HPSOSAScheduler(PSOScheduler):
+
+```
+def __init__(self, swarm_size, num_iterations, w, c1, c2,
+             sa_initial_temp, sa_cooling_rate):
+    super().__init__(swarm_size, num_iterations, w, c1, c2)
+    self.sa_initial_temp = sa_initial_temp
+    self.sa_cooling_rate = sa_cooling_rate
+
+def schedule(self, tasks, vms):
+    if self.fitness_calculator is None:
+        raise Exception("Fitness weights must be set before running HPSO-SA scheduler")
+
+    num_tasks = len(tasks)
+    num_vms = len(vms)
+
+    swarm = [Particle(num_tasks, num_vms) for _ in range(self.swarm_size)]
+    gbest_position = None
+    gbest_fitness = float('inf')
+
+    temp = self.sa_initial_temp
+
+    history = {'iteration': [], 'gbest': [], 'temperature': []}
+
+    for iteration in range(self.num_iterations):
+        for particle in swarm:
+            schedule = particle.get_discrete_schedule()
+            fitness = self.fitness_calculator.calculate_fitness(schedule)
+
+            if fitness < particle.pbest_fitness:
+                particle.pbest_fitness = fitness
+                particle.pbest_position = np.copy(particle.position)
+            else:
+                delta = fitness - particle.pbest_fitness
+                acceptance_prob = np.exp(-delta / (temp + 1e-9))
+                if random.random() < acceptance_prob:
+                    particle.pbest_fitness = fitness
+                    particle.pbest_position = np.copy(particle.position)
+
+            if fitness < gbest_fitness:
+                gbest_fitness = fitness
+                gbest_position = np.copy(particle.position)
+
+        if gbest_position is None:
+            gbest_position = swarm[0].pbest_position
+
+        for particle in swarm:
+            r1 = np.random.rand(num_tasks)
+            r2 = np.random.rand(num_tasks)
+            cognitive = self.c1 * r1 * (particle.pbest_position - particle.position)
+            social = self.c2 * r2 * (gbest_position - particle.position)
+            particle.velocity = self.w * particle.velocity + cognitive + social
+            particle.position += particle.velocity
+            particle.position = np.clip(particle.position, 0, num_vms - 1)
+
+        temp *= self.sa_cooling_rate
+
+        history['iteration'].append(iteration + 1)
+        history['gbest'].append(gbest_fitness)
+        history['temperature'].append(temp)
+
+    plot_paper_convergence(history, title="HPSO-SA Convergence", filename="results/HPSO_SA_convergence.png")
+
+    final_schedule = np.round(np.clip(gbest_position, 0, num_vms - 1)).astype(int)
+    return final_schedule.tolist()
+```
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\schedulers\\metaheuristic\\paperGA.py
+
+import numpy as np
+import random
+from schedulers.base\_scheduler import BaseScheduler
+from schedulers.metaheuristic.fitness import FitnessCalculator
+from utils.visualizer import plot\_ga\_convergence
+
+class HGASAScheduler(BaseScheduler):
+
+```
+def __init__(self, population_size, num_generations, mutation_rate, crossover_rate,
+             tournament_size=3, sa_initial_temp=100.0, sa_cooling_rate=0.95, sa_iterations=20):
+    
+    self.population_size = population_size
+    self.num_generations = num_generations
+    self.mutation_rate = mutation_rate
+    self.crossover_rate = crossover_rate
+    self.tournament_size = tournament_size
+    
+    self.sa_initial_temp = sa_initial_temp
+    self.sa_cooling_rate = sa_cooling_rate
+    self.sa_iterations = sa_iterations
+    
+    self.fitness_calculator = None
+    self.num_vms = 0
+
+def set_fitness_weights(self, weights, tasks, vms):
+    self.fitness_calculator = FitnessCalculator(tasks, vms, weights)
+    self.num_vms = len(vms)
+
+def schedule(self, tasks, vms):
+    if self.fitness_calculator is None:
+        raise Exception("Fitness weights must be set before running HGA-SA scheduler")
+
+    num_tasks = len(tasks)
+    population = self._initialize_population(num_tasks)
+    best_schedule = None
+    best_fitness = float('inf')
+
+    history = {'generation': [], 'gbest': [], 'temperature': []}
+    temp = self.sa_initial_temp
+
+    for generation in range(self.num_generations):
+        fitnesses = [self.fitness_calculator.calculate_fitness(chrom) for chrom in population]
+        
+        gen_best_idx = np.argmin(fitnesses)
+        if fitnesses[gen_best_idx] < best_fitness:
+            best_fitness = fitnesses[gen_best_idx]
+            best_schedule = population[gen_best_idx][:]
+
+        new_population = []
+        for chrom in population:
+            polished = self._run_sa(chrom, temp)
+            new_population.append(polished)
+
+        next_gen = [best_schedule]
+        while len(next_gen) < self.population_size:
+            p1 = self._selection(new_population, fitnesses)
+            p2 = self._selection(new_population, fitnesses)
+
+            if random.random() < self.crossover_rate:
+                c1, c2 = self._crossover(p1, p2)
+            else:
+                c1, c2 = p1[:], p2[:]
+
+            next_gen.append(self._mutation(c1))
+            if len(next_gen) < self.population_size:
+                next_gen.append(self._mutation(c2))
+
+        population = next_gen
+        temp *= self.sa_cooling_rate
+
+        history['generation'].append(generation + 1)
+        history['gbest'].append(best_fitness)
+        history['temperature'].append(temp)
+
+    plot_ga_convergence(history, title="HGA-SA Convergence", filename="results/HGA_SA_convergence.png")
+    return best_schedule
+
+def _initialize_population(self, num_tasks):
+    return [[random.randint(0, self.num_vms - 1) for _ in range(num_tasks)] for _ in range(self.population_size)]
+
+def _selection(self, population, fitnesses):
+    tournament = random.sample(list(zip(population, fitnesses)), self.tournament_size)
+    return min(tournament, key=lambda x: x[1])[0]
+
+def _crossover(self, p1, p2):
+    point = random.randint(1, len(p1) - 1)
+    return p1[:point] + p2[point:], p2[:point] + p1[point:]
+
+def _mutation(self, chrom):
+    for i in range(len(chrom)):
+        if random.random() < self.mutation_rate:
+            chrom[i] = random.randint(0, self.num_vms - 1)
+    return chrom
+
+def _run_sa(self, initial_schedule, temp):
+    current = initial_schedule[:]
+    current_fitness = self.fitness_calculator.calculate_fitness(current)
+    best = current[:]
+    best_fitness = current_fitness
+    current_temp = temp
+
+    for _ in range(self.sa_iterations):
+        neighbor = self._create_neighbor(current)
+        neighbor_fitness = self.fitness_calculator.calculate_fitness(neighbor)
+
+        if neighbor_fitness < best_fitness:
+            best, best_fitness = neighbor[:], neighbor_fitness
+
+        delta = neighbor_fitness - current_fitness
+        if delta < 0 or random.random() < np.exp(-delta / (current_temp + 1e-9)):
+            current, current_fitness = neighbor[:], neighbor_fitness
+
+        current_temp *= self.sa_cooling_rate
+
+    return best
+
+def _create_neighbor(self, schedule):
+    neighbor = schedule[:]
+    task_to_mutate = random.randint(0, len(schedule) - 1)
+    neighbor[task_to_mutate] = random.randint(0, self.num_vms - 1)
+    return neighbor
+```
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\schedulers\\metaheuristic\\pso.py
+
+import numpy as np
+import random
+from schedulers.base\_scheduler import BaseScheduler
+from schedulers.metaheuristic.fitness import FitnessCalculator
+
+class Particle:
+def **init**(self, num\_tasks, num\_vms):
+self.num\_vms = num\_vms
+self.position = np.random.uniform(0, num\_vms - 1, num\_tasks)
+self.velocity = np.random.uniform(-1, 1, num\_tasks)
+self.pbest\_position = np.copy(self.position)
+self.pbest\_fitness = float('inf')
+
+```
+def get_discrete_schedule(self):
+    clamped_pos = np.clip(self.position, 0, self.num_vms - 1)
+    return np.round(clamped_pos).astype(int)
+```
+
+class PSOScheduler(BaseScheduler):
+
+```
+def __init__(self, swarm_size, num_iterations, w, c1, c2):
+    self.swarm_size = swarm_size
+    self.num_iterations = num_iterations
+    self.w = w
+    self.c1 = c1
+    self.c2 = c2
+    self.fitness_calculator = None
+
+def set_fitness_weights(self, weights, tasks, vms):
+    self.fitness_calculator = FitnessCalculator(tasks, vms, weights)
+
+def schedule(self, tasks, vms):
+    if self.fitness_calculator is None:
+        raise Exception("Fitness weights must be set for PSO scheduler")
+    
+    num_tasks = len(tasks)
+    num_vms = len(vms)
+    
+    swarm = [Particle(num_tasks, num_vms) for _ in range(self.swarm_size)]
+    
+    gbest_position = None
+    gbest_fitness = float('inf')
+
+    for _ in range(self.num_iterations):
+        for particle in swarm:
+            schedule = particle.get_discrete_schedule()
+            fitness = self.fitness_calculator.calculate_fitness(schedule)
+            
+            if fitness < particle.pbest_fitness:
+                particle.pbest_fitness = fitness
+                particle.pbest_position = np.copy(particle.position)
+                
+            if fitness < gbest_fitness:
+                gbest_fitness = fitness
+                gbest_position = np.copy(particle.position)
+        
+        if gbest_position is None:
+            gbest_position = swarm[0].pbest_position
+        
+        for particle in swarm:
+            r1 = np.random.rand(num_tasks)
+            r2 = np.random.rand(num_tasks)
+            
+            cognitive_velocity = self.c1 * r1 * (particle.pbest_position - particle.position)
+            social_velocity = self.c2 * r2 * (gbest_position - particle.position)
+            particle.velocity = self.w * particle.velocity + cognitive_velocity + social_velocity
+            
+            particle.position = particle.position + particle.velocity
+            particle.position = np.clip(particle.position, 0, num_vms - 1)
+    
+    final_schedule = np.round(np.clip(gbest_position, 0, num_vms - 1)).astype(int)
+    return final_schedule.tolist()
+```
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\schedulers\\metaheuristic\\test1.py
+
+import numpy as np
+import random
+from schedulers.metaheuristic.pso import PSOScheduler, Particle
+from schedulers.metaheuristic.fitness import FitnessCalculator
+
+class test1(PSOScheduler):
+
+```
+def __init__(self, swarm_size, num_iterations, w, c1, c2,
+             stagnation_threshold, sa_initial_temp, sa_cooling_rate, sa_iterations):
+    
+    super().__init__(swarm_size, num_iterations, w, c1, c2)
+    
+    self.stagnation_threshold = stagnation_threshold
+    self.stagnation_counter = 0
+    self.last_best_fitness = float('inf')
+    
+    self.sa_initial_temp = sa_initial_temp
+    self.sa_cooling_rate = sa_cooling_rate
+    self.sa_iterations = sa_iterations
+
+def schedule(self, tasks, vms):
+    if self.fitness_calculator is None:
+        raise Exception("Fitness weights must be set for MO-PSO-SA scheduler")
+    
+    num_tasks = len(tasks)
+    num_vms = len(vms)
+    
+    swarm = [Particle(num_tasks, num_vms) for _ in range(self.swarm_size)]
+    
+    gbest_position = None
+    gbest_fitness = float('inf')
+    
+    self.stagnation_counter = 0
+    self.last_best_fitness = float('inf')
+
+    for _ in range(self.num_iterations):
+        for particle in swarm:
+            schedule = particle.get_discrete_schedule()
+            fitness = self.fitness_calculator.calculate_fitness(schedule)
+            
+            if fitness < particle.pbest_fitness:
+                particle.pbest_fitness = fitness
+                particle.pbest_position = np.copy(particle.position)
+                
+            if fitness < gbest_fitness:
+                gbest_fitness = fitness
+                gbest_position = np.copy(particle.position)
+        
+        if gbest_position is None:
+            gbest_position = swarm[0].pbest_position
+
+        if gbest_fitness < self.last_best_fitness:
+            self.stagnation_counter = 0
+            self.last_best_fitness = gbest_fitness
+        else:
+            self.stagnation_counter += 1
+
+        if self.stagnation_counter >= self.stagnation_threshold:
+            current_schedule = np.round(np.clip(gbest_position, 0, num_vms - 1)).astype(int).tolist()
+            
+            new_schedule = self._run_sa(current_schedule, num_vms)
+            new_fitness = self.fitness_calculator.calculate_fitness(new_schedule)
+            
+            if new_fitness < gbest_fitness:
+                gbest_fitness = new_fitness
+                gbest_position = np.array(new_schedule)
+                
+            self.stagnation_counter = 0
+
+        for particle in swarm:
+            r1 = np.random.rand(num_tasks)
+            r2 = np.random.rand(num_tasks)
+            
+            cognitive_velocity = self.c1 * r1 * (particle.pbest_position - particle.position)
+            social_velocity = self.c2 * r2 * (gbest_position - particle.position)
+            particle.velocity = self.w * particle.velocity + cognitive_velocity + social_velocity
+            
+            particle.position = particle.position + particle.velocity
+            particle.position = np.clip(particle.position, 0, num_vms - 1)
+    
+    final_schedule = np.round(np.clip(gbest_position, 0, num_vms - 1)).astype(int)
+    return final_schedule.tolist()
+
+def _run_sa(self, initial_schedule, num_vms):
+    current_temp = self.sa_initial_temp
+    current_schedule = initial_schedule[:]
+    current_fitness = self.fitness_calculator.calculate_fitness(current_schedule)
+    
+    best_schedule = current_schedule[:]
+    best_fitness = current_fitness
+    
+    for _ in range(self.sa_iterations):
+        neighbor_schedule = self._create_neighbor(current_schedule, num_vms)
+        neighbor_fitness = self.fitness_calculator.calculate_fitness(neighbor_schedule)
+        
+        if neighbor_fitness < best_fitness:
+            best_fitness = neighbor_fitness
+            best_schedule = neighbor_schedule[:]
+        
+        delta_fitness = neighbor_fitness - current_fitness
+        
+        if delta_fitness < 0:
+            current_schedule = neighbor_schedule[:]
+            current_fitness = neighbor_fitness
+        else:
+            acceptance_prob = np.exp(-delta_fitness / current_temp)
+            if random.random() < acceptance_prob:
+                current_schedule = neighbor_schedule[:]
+                current_fitness = neighbor_fitness
+                
+        current_temp *= self.sa_cooling_rate
+        
+    return best_schedule
+
+def _create_neighbor(self, schedule, num_vms):
+    neighbor = schedule[:]
+    task_to_mutate = random.randint(0, len(schedule) - 1)
+    new_vm = random.randint(0, num_vms - 1)
+    neighbor[task_to_mutate] = new_vm
+    return neighbor
+```
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\schedulers\\metaheuristic\\test2.py
+
+import numpy as np
+import random
+from schedulers.base\_scheduler import BaseScheduler
+from schedulers.metaheuristic.fitness import FitnessCalculator
+
+class test2(BaseScheduler):
+
+```
+def __init__(self, population_size, num_generations, mutation_rate, crossover_rate, 
+             tournament_size=3, num_elite_sa=5, sa_initial_temp=100.0, 
+             sa_cooling_rate=0.95, sa_iterations=20):
+    
+    self.population_size = population_size
+    self.num_generations = num_generations
+    self.mutation_rate = mutation_rate
+    self.crossover_rate = crossover_rate
+    self.tournament_size = tournament_size
+    
+    self.num_elite_sa = num_elite_sa
+    self.sa_initial_temp = sa_initial_temp
+    self.sa_cooling_rate = sa_cooling_rate
+    self.sa_iterations = sa_iterations
+    
+    self.fitness_calculator = None
+    self.num_vms = 0
+
+def set_fitness_weights(self, weights, tasks, vms):
+    self.fitness_calculator = FitnessCalculator(tasks, vms, weights)
+    self.num_vms = len(vms)
+
+def schedule(self, tasks, vms):
+    if self.fitness_calculator is None:
+        raise Exception("Fitness weights must be set for GA-SA scheduler")
+
+    num_tasks = len(tasks)
+    
+    population = self._initialize_population(num_tasks)
+    
+    best_schedule = None
+    best_fitness = float('inf')
+
+    for _ in range(self.num_generations):
+        fitnesses = [self.fitness_calculator.calculate_fitness(chrom) for chrom in population]
+        
+        current_best_idx = np.argmin(fitnesses)
+        if fitnesses[current_best_idx] < best_fitness:
+            best_fitness = fitnesses[current_best_idx]
+            best_schedule = population[current_best_idx][:]
+
+        new_population = []
+        new_population.append(best_schedule)
+        
+        while len(new_population) < self.population_size:
+            parent1 = self._selection(population, fitnesses)
+            parent2 = self._selection(population, fitnesses)
+            
+            if random.random() < self.crossover_rate:
+                child1, child2 = self._crossover(parent1, parent2)
+            else:
+                child1, child2 = parent1[:], parent2[:]
+            
+            new_population.append(self._mutation(child1))
+            if len(new_population) < self.population_size:
+                new_population.append(self._mutation(child2))
+        
+        new_fitnesses = [(self.fitness_calculator.calculate_fitness(p), i) for i, p in enumerate(new_population)]
+        new_fitnesses.sort(key=lambda x: x[0])
+        
+        for i in range(self.num_elite_sa):
+            if i >= len(new_population):
+                break
+            
+            elite_index = new_fitnesses[i][1]
+            elite_solution = new_population[elite_index]
+            
+            polished_solution = self._run_sa(elite_solution)
+            
+            new_population[elite_index] = polished_solution
+
+        population = new_population
+
+    return best_schedule
+
+def _initialize_population(self, num_tasks):
+    population = []
+    for _ in range(self.population_size):
+        chromosome = [random.randint(0, self.num_vms - 1) for _ in range(num_tasks)]
+        population.append(chromosome)
+    return population
+
+def _selection(self, population, fitnesses):
+    tournament = random.sample(list(zip(population, fitnesses)), self.tournament_size)
+    winner = min(tournament, key=lambda x: x[1])[0]
+    return winner
+
+def _crossover(self, parent1, parent2):
+    num_tasks = len(parent1)
+    point = random.randint(1, num_tasks - 1)
+    child1 = parent1[:point] + parent2[point:]
+    child2 = parent2[:point] + parent1[point:]
+    return child1, child2
+
+def _mutation(self, chromosome):
+    for i in range(len(chromosome)):
+        if random.random() < self.mutation_rate:
+            chromosome[i] = random.randint(0, self.num_vms - 1)
+    return chromosome
+
+def _run_sa(self, initial_schedule):
+    current_temp = self.sa_initial_temp
+    current_schedule = initial_schedule[:]
+    current_fitness = self.fitness_calculator.calculate_fitness(current_schedule)
+    
+    best_schedule = current_schedule[:]
+    best_fitness = current_fitness
+    
+    for _ in range(self.sa_iterations):
+        neighbor_schedule = self._create_neighbor(current_schedule)
+        neighbor_fitness = self.fitness_calculator.calculate_fitness(neighbor_schedule)
+        
+        if neighbor_fitness < best_fitness:
+            best_fitness = neighbor_fitness
+            best_schedule = neighbor_schedule[:]
+        
+        delta_fitness = neighbor_fitness - current_fitness
+        
+        if delta_fitness < 0 or random.random() < np.exp(-delta_fitness / current_temp):
+            current_schedule = neighbor_schedule[:]
+            current_fitness = neighbor_fitness
+                
+        current_temp *= self.sa_cooling_rate
+        
+    return best_schedule
+
+def _create_neighbor(self, schedule):
+    neighbor = schedule[:]
+    task_to_mutate = random.randint(0, len(schedule) - 1)
+    new_vm = random.randint(0, self.num_vms - 1)
+    neighbor[task_to_mutate] = new_vm
+    return neighbor
+```
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\schedulers\\metaheuristic\_*init*\_.py
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\schedulers\\simple\\fcfs.py
+
+import networkx as nx
+from schedulers.base\_scheduler import BaseScheduler
+
+class FCFSScheduler(BaseScheduler):
+
+```
+def schedule(self, tasks, vms):
+    num_vms = len(vms)
+    num_tasks = len(tasks)
+    schedule = [0] * num_tasks
+    
+    G = nx.DiGraph()
+    G.add_nodes_from([task.task_id for task in tasks])
+    G.add_edges_from([(p, task.task_id) for task in tasks for p in task.parents])
+    
+    try:
+        topo_sort = list(nx.topological_sort(G))
+    except nx.NetworkXUnfeasible:
+        raise Exception("Scheduler Error: The provided task graph is not a DAG (contains cycles).")
+    
+    vm_index = 0
+    for task_id in topo_sort:
+        schedule[task_id] = vm_index
+        vm_index = (vm_index + 1) % num_vms
+        
+    return schedule
+```
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\schedulers\\simple\\rr.py
+
+import networkx as nx
+from schedulers.base\_scheduler import BaseScheduler
+
+class RRScheduler(BaseScheduler):
+
+```
+def schedule(self, tasks, vms):
+    num_vms = len(vms)
+    num_tasks = len(tasks)
+    schedule = [0] * num_tasks
+    
+    G = nx.DiGraph()
+    G.add_nodes_from([task.task_id for task in tasks])
+    G.add_edges_from([(p, task.task_id) for task in tasks for p in task.parents])
+    
+    try:
+        topo_sort = list(nx.topological_sort(G))
+    except nx.NetworkXUnfeasible:
+        raise Exception("Scheduler Error: The provided task graph is not a DAG (contains cycles).")
+    
+    vm_index = 0
+    for task_id in topo_sort:
+        schedule[task_id] = vm_index
+        vm_index = (vm_index + 1) % num_vms
+        
+    return schedule
+```
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\schedulers\\simple\_*init*\_.py
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\simulator\\environment.py
+
+class Task:
+def **init**(self, task\_id, length, ram\_required):
+self.task\_id = task\_id
+self.length = length
+self.ram\_required = ram\_required
+
+```
+    self.parents = set()
+    self.children = set()
+    
+    self.parent_data_sizes = {} 
+
+def __repr__(self):
+    return (f"Task(id={self.task_id}, length={self.length}, "
+            f"ram={self.ram_required}MB, parents={self.parents})")
+```
+
+class VM:
+def **init**(self, vm\_id, mips, cost\_per\_sec, power, ram\_capacity, bandwidth):
+self.vm\_id = vm\_id
+self.mips = mips
+self.cost\_per\_sec = cost\_per\_sec
+self.power = power
+self.ram\_capacity = ram\_capacity
+self.bandwidth = bandwidth
+
+```
+def __repr__(self):
+    return (f"VM(id={self.vm_id}, mips={self.mips}, ram={self.ram_capacity}MB, "
+            f"bw={self.bandwidth}Mbps, cost=${self.cost_per_sec}/s)")
+```
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\simulator\\metrics.py
+
+import numpy as np
+
+def calculate\_metrics(schedule, tasks, vms):
+
+```
+num_tasks = len(tasks)
+num_vms = len(vms)
+
+vm_finish_times = np.zeros(num_vms)
+
+vm_total_busy_time = np.zeros(num_vms)
+
+task_finish_times = {} 
+
+uncompleted_parents_count = {
+    task.task_id: len(task.parents) for task in tasks
+}
+
+ready_queue = []
+for task in tasks:
+    if uncompleted_parents_count[task.task_id] == 0:
+        ready_queue.append(task.task_id)
+
+while ready_queue or len(task_finish_times) < num_tasks:
+    if not ready_queue:
+        raise Exception("Error in DAG simulation: Deadlock or cycle detected.")
+        
+    task_id = ready_queue.pop(0)
+    task = tasks[task_id]
+    
+    vm_id = schedule[task_id]
+    vm = vms[vm_id]
+
+    vm_available_time = vm_finish_times[vm_id]
+    
+    parent_data_ready_time = 0
+    if task.parents:
+        for p_id in task.parents:
+            p_finish_time = task_finish_times[p_id]
+            p_vm_id = schedule[p_id]
+            
+            transfer_time = 0
+            if p_vm_id != vm_id:
+                data_size_mb = task.parent_data_sizes[p_id]
+                bandwidth_mbps = vm.bandwidth / 8.0 
+                if bandwidth_mbps > 0:
+                    transfer_time = data_size_mb / bandwidth_mbps
+                else:
+                    transfer_time = float('inf')
+            
+            this_parent_ready_time = p_finish_time + transfer_time
+            
+            if this_parent_ready_time > parent_data_ready_time:
+                parent_data_ready_time = this_parent_ready_time
+        
+    start_time = max(vm_available_time, parent_data_ready_time)
+    
+    execution_time = task.length / vm.mips
+    finish_time = start_time + execution_time
+    
+    task_finish_times[task_id] = finish_time
+    vm_finish_times[vm_id] = finish_time
+    vm_total_busy_time[vm_id] += execution_time
+    
+    for child_id in task.children:
+        uncompleted_parents_count[child_id] -= 1
+        if uncompleted_parents_count[child_id] == 0:
+            ready_queue.append(child_id)
+
+makespan = max(task_finish_times.values())
+
+total_cost = 0
+for vm_id in range(num_vms):
+    total_cost += vm_total_busy_time[vm_id] * vms[vm_id].cost_per_sec
+    
+total_energy_joules = 0
+for vm_id in range(num_vms):
+    total_energy_joules += vm_total_busy_time[vm_id] * vms[vm_id].power
+total_energy_wh = total_energy_joules / 3600.0
+
+return {
+    "makespan": makespan,
+    "total_cost": total_cost,
+    "total_energy": total_energy_wh
+}
+```
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\simulator\_*init*\_.py
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\utils\\datagen.py
+
+import numpy as np
+import networkx as nx
+import matplotlib.pyplot as plt
+from simulator.environment import Task, VM
+
+def create\_dag(num\_tasks, scenario\_name, density=0.2):
+
+```
+G = nx.DiGraph()
+G.add_nodes_from(range(num_tasks))
+
+for i in range(num_tasks):
+    for j in range(i + 1, num_tasks):
+        if np.random.rand() < density:
+            G.add_edge(i, j)
+
+tasks = []
+task_lengths = np.random.randint(1000, 10000, num_tasks) 
+task_ram = np.random.randint(256, 2049, num_tasks)
+
+for i in range(num_tasks):
+    tasks.append(Task(
+        task_id=i, 
+        length=task_lengths[i], 
+        ram_required=task_ram[i]
+    ))
+    
+for node in G.nodes():
+    tasks[node].parents = set(G.predecessors(node))
+    tasks[node].children = set(G.successors(node))
+    
+    for p_id in tasks[node].parents:
+        data_size = np.random.randint(50, 501)
+        tasks[node].parent_data_sizes[p_id] = data_size
+        
+plt.figure(figsize=(12, 8))
+try:
+    pos = nx.nx_pydot.graphviz_layout(G, prog='dot')
+except:
+    print("  > pydot/graphviz not found. Using kamada_kawai_layout for DAG image.")
+    pos = nx.kamada_kawai_layout(G)
+    
+nx.draw(G, pos, with_labels=True, node_color='lightblue', 
+        node_size=500, font_size=10, arrows=True)
+plt.title(f"Test Case: {scenario_name} ({num_tasks} Tasks DAG)")
+
+image_filename = f"test_cases/{scenario_name}.png"
+plt.savefig(image_filename)
+plt.close()
+    
+return tasks
+```
+
+def create\_vms(num\_vms):
+vms = []
+np.random.seed(42)
+
+```
+mips = np.random.randint(1000, 4000, num_vms)
+costs = np.random.uniform(0.01, 0.15, num_vms)
+power = np.random.uniform(100, 300, num_vms)
+ram_capacities = np.random.choice([2048, 4096, 8192], num_vms)
+bandwidths = np.random.choice([100, 500, 1000], num_vms)
+
+for i in range(num_vms):
+    vms.append(VM(
+        vm_id=i, 
+        mips=mips[i], 
+        cost_per_sec=costs[i], 
+        power=power[i],
+        ram_capacity=ram_capacities[i],
+        bandwidth=bandwidths[i]
+    ))
+    
+return vms
+```
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\utils\\visualizer.py
+
+import matplotlib.pyplot as plt
+import numpy as np
+import csv
+import os
+
+def plot\_results(results, title, filename):
+scheduler\_order = [
+"FCFS", "Round Robin",
+"GA", "PSO",
+"HPSO-SA", "HGA-SA",
+"test1", "test2"
+]
+
+```
+schedulers = [s for s in scheduler_order if s in results]
+metrics = ['makespan', 'total_cost', 'total_energy']
+metric_names = ['Makespan (s)', 'Total Cost ($)', 'Total Energy (Wh)']
+
+fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(10, 15))
+fig.suptitle(title, fontsize=16)
+
+for i, (metric, name) in enumerate(zip(metrics, metric_names)):
+    ax = axes[i]
+    values = [results[s][metric] for s in schedulers]
+    x_pos = np.arange(len(schedulers))
+
+    bars = ax.bar(x_pos, values, align='center',
+                  color=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728',
+                         '#9467bd', '#8c564b', '#e377c2', '#7f7f7f'])
+    ax.set_xticks(x_pos)
+    ax.set_xticklabels(schedulers, rotation=45, ha='right')
+    ax.set_ylabel(name)
+    ax.set_title(f'Comparison of {name}')
+
+    for bar in bars:
+        yval = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2.0, yval,
+                f'{yval:.2f}', va='bottom', ha='center')
+
+plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+plt.savefig(filename, dpi=300)
+plt.close(fig)
+```
+
+def save\_results\_to\_csv(results, filename):
+header = ['Scheduler', 'Makespan', 'TotalCost', 'TotalEnergy']
+os.makedirs(os.path.dirname(filename), exist\_ok=True)
+with open(filename, 'w', newline='') as f:
+writer = csv.writer(f)
+writer.writerow(header)
+for scheduler\_name, metrics in results.items():
+writer.writerow([
+scheduler\_name,
+f"{metrics['makespan']:.4f}",
+f"{metrics['total\_cost']:.4f}",
+f"{metrics['total\_energy']:.4f}"
+])
+
+def plot\_average\_results(all\_results, filename):
+average\_metrics = {}
+for scheduler\_name, metric\_list in all\_results.items():
+if not metric\_list:
+continue
+avg\_makespan = np.mean([m['makespan'] for m in metric\_list])
+avg\_cost = np.mean([m['total\_cost'] for m in metric\_list])
+avg\_energy = np.mean([m['total\_energy'] for m in metric\_list])
+average\_metrics[scheduler\_name] = {
+'makespan': avg\_makespan,
+'total\_cost': avg\_cost,
+'total\_energy': avg\_energy
+}
+
+```
+plot_results(average_metrics,
+             title="Average Performance Across All Test Cases",
+             filename=filename)
+csv_filename = filename.replace(".png", ".csv")
+save_results_to_csv(average_metrics, csv_filename)
+```
+
+def plot\_paper\_convergence(history, title="HPSO-SA Convergence", filename="results/HPSO\_SA\_convergence.png"):
+os.makedirs(os.path.dirname(filename), exist\_ok=True)
+iters = history.get('iteration', [])
+gbest = history.get('gbest', [])
+temps = history.get('temperature', [])
+
+```
+fig, ax1 = plt.subplots(figsize=(10, 6))
+ax1.set_title(title, fontsize=14, fontweight='bold')
+ax1.set_xlabel("Iteration", fontsize=12)
+ax1.set_ylabel("Global Best Fitness", color='tab:blue', fontsize=12)
+ax1.plot(iters, gbest, label="Global Best Fitness", color='tab:blue', linewidth=2)
+ax1.tick_params(axis='y', labelcolor='tab:blue')
+ax1.grid(True, linestyle='--', alpha=0.5)
+
+if temps:
+    ax2 = ax1.twinx()
+    ax2.plot(iters, temps, label="Temperature", color='tab:red', linestyle='--', linewidth=2)
+    ax2.set_ylabel("Temperature (SA)", color='tab:red', fontsize=12)
+    ax2.tick_params(axis='y', labelcolor='tab:red')
+
+plt.legend(loc='upper right')
+plt.tight_layout()
+plt.savefig(filename, dpi=300)
+plt.close(fig)
+```
+
+def plot\_ga\_convergence(history, title="HGA-SA Convergence", filename="results/HGA\_SA\_convergence.png"):
+os.makedirs(os.path.dirname(filename), exist\_ok=True)
+gens = history.get('generation', [])
+gbest = history.get('gbest', [])
+temps = history.get('temperature', [])
+
+```
+fig, ax1 = plt.subplots(figsize=(10, 6))
+ax1.set_title(title, fontsize=14, fontweight='bold')
+ax1.set_xlabel("Generation", fontsize=12)
+ax1.set_ylabel("Global Best Fitness", color='tab:blue', fontsize=12)
+ax1.plot(gens, gbest, color='tab:blue', linewidth=2, label='Global Best Fitness')
+ax1.tick_params(axis='y', labelcolor='tab:blue')
+ax1.grid(True, linestyle='--', alpha=0.5)
+
+if temps:
+    ax2 = ax1.twinx()
+    ax2.plot(gens, temps, color='tab:red', linestyle='--', linewidth=2, label='Temperature')
+    ax2.set_ylabel("Temperature (SA)", color='tab:red', fontsize=12)
+    ax2.tick_params(axis='y', labelcolor='tab:red')
+
+plt.legend(loc='upper right')
+plt.tight_layout()
+plt.savefig(filename, dpi=300)
+plt.close(fig)
+```
+
+\================================================================================
+
+## C:\\Users\\pharmacis7\\Desktop\\RETRY\\schedulers\\utils\_*init*\_.py

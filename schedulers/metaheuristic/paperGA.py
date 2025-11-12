@@ -4,26 +4,17 @@ from schedulers.base_scheduler import BaseScheduler
 from schedulers.metaheuristic.fitness import FitnessCalculator
 from utils.visualizer import plot_ga_convergence
 
-class BasePaperGA(BaseScheduler):
-    """
-    BasePaper(GA): Hybrid Genetic Algorithm + Simulated Annealing (Paper-style).
-
-    - SA runs on *every* chromosome each generation (aggressive exploration).
-    - Encourages exploration at high temperature, exploitation as it cools.
-    - Slower, but matches the paper’s GA-SA behavior.
-    """
+class HGASAScheduler(BaseScheduler):
 
     def __init__(self, population_size, num_generations, mutation_rate, crossover_rate,
                  tournament_size=3, sa_initial_temp=100.0, sa_cooling_rate=0.95, sa_iterations=20):
         
-        # GA parameters
         self.population_size = population_size
         self.num_generations = num_generations
         self.mutation_rate = mutation_rate
         self.crossover_rate = crossover_rate
         self.tournament_size = tournament_size
         
-        # SA parameters
         self.sa_initial_temp = sa_initial_temp
         self.sa_cooling_rate = sa_cooling_rate
         self.sa_iterations = sa_iterations
@@ -37,35 +28,30 @@ class BasePaperGA(BaseScheduler):
 
     def schedule(self, tasks, vms):
         if self.fitness_calculator is None:
-            raise Exception("Fitness weights must be set before running BasePaper(GA) scheduler")
+            raise Exception("Fitness weights must be set before running HGA-SA scheduler")
 
         num_tasks = len(tasks)
         population = self._initialize_population(num_tasks)
         best_schedule = None
         best_fitness = float('inf')
 
-        # For visualization
         history = {'generation': [], 'gbest': [], 'temperature': []}
         temp = self.sa_initial_temp
 
         for generation in range(self.num_generations):
-            # Evaluate fitness
             fitnesses = [self.fitness_calculator.calculate_fitness(chrom) for chrom in population]
             
-            # Update best
             gen_best_idx = np.argmin(fitnesses)
             if fitnesses[gen_best_idx] < best_fitness:
                 best_fitness = fitnesses[gen_best_idx]
                 best_schedule = population[gen_best_idx][:]
 
-            # Apply SA to ALL individuals (paper style)
             new_population = []
             for chrom in population:
                 polished = self._run_sa(chrom, temp)
                 new_population.append(polished)
 
-            # GA operators (selection, crossover, mutation)
-            next_gen = [best_schedule]  # elitism
+            next_gen = [best_schedule]
             while len(next_gen) < self.population_size:
                 p1 = self._selection(new_population, fitnesses)
                 p2 = self._selection(new_population, fitnesses)
@@ -80,18 +66,15 @@ class BasePaperGA(BaseScheduler):
                     next_gen.append(self._mutation(c2))
 
             population = next_gen
-            temp *= self.sa_cooling_rate  # cool down
+            temp *= self.sa_cooling_rate
 
-            # Log convergence
             history['generation'].append(generation + 1)
             history['gbest'].append(best_fitness)
             history['temperature'].append(temp)
 
-        # Plot convergence
-        plot_ga_convergence(history, filename="results/BasePaperGA_convergence.png")
+        plot_ga_convergence(history, title="HGA-SA Convergence", filename="results/HGA_SA_convergence.png")
         return best_schedule
 
-    # --- Helper Functions ---
     def _initialize_population(self, num_tasks):
         return [[random.randint(0, self.num_vms - 1) for _ in range(num_tasks)] for _ in range(self.population_size)]
 

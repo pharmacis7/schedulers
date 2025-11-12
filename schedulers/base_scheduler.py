@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 
 class BaseScheduler(ABC):
     
-    # abstract base class for all scheduling algos
     @abstractmethod
     def schedule(self, tasks, vms):
         pass

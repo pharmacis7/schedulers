@@ -1,14 +1,12 @@
 class Task:
     def __init__(self, task_id, length, ram_required):
         self.task_id = task_id
-        self.length = length  # length (MIPS)
-        self.ram_required = ram_required # RAM required (MB)
+        self.length = length
+        self.ram_required = ram_required
         
-        self.parents = set()  # Set of parent task_ids
-        self.children = set() # Set of child task_ids
+        self.parents = set()
+        self.children = set()
         
-        # Stores data transfer size (in MB) from each parent
-        # {parent_id: data_size_mb}
         self.parent_data_sizes = {} 
 
     def __repr__(self):
@@ -19,11 +17,11 @@ class Task:
 class VM:
     def __init__(self, vm_id, mips, cost_per_sec, power, ram_capacity, bandwidth):
         self.vm_id = vm_id
-        self.mips = mips  # processing power (MIPS)
-        self.cost_per_sec = cost_per_sec  # cost
-        self.power = power  # power (Watts)
-        self.ram_capacity = ram_capacity # total RAM (MB)
-        self.bandwidth = bandwidth # network (Mbps)
+        self.mips = mips
+        self.cost_per_sec = cost_per_sec
+        self.power = power
+        self.ram_capacity = ram_capacity
+        self.bandwidth = bandwidth
 
     def __repr__(self):
         return (f"VM(id={self.vm_id}, mips={self.mips}, ram={self.ram_capacity}MB, "
